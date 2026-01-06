@@ -7,6 +7,7 @@ from telegram.ext import (ApplicationBuilder,CommandHandler,ContextTypes,Message
     CallbackQueryHandler,filters)
 
 #from handlers.start import start, button_handler, message_handler
+from handlers.start import start
 import asyncio
 
 # ==============================
