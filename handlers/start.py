@@ -130,6 +130,8 @@ async def message_handler(update, context):
 
 
 #testing
+from telegram import Update
+from telegram.ext import ContextTypes
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # لا تستخدم لوحة مفاتيح أو منطق 'followed_users' مؤقتاً
     try:
