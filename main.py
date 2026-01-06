@@ -47,17 +47,44 @@ def webhook():
 # تشغيل التطبيق
 # ==============================
 
-if __name__ == "__main__":
-    telegram_app.initialize()
-    telegram_app.start()
+# ... (الجزء العلوي من الكود و Handlers يبقى كما هو)
 
-    telegram_app.bot.set_webhook(
-        url="https://اسم-خدمتك.onrender.com/"
+# ==============================
+# Webhook endpoint
+# ==============================
+
+# نستخدم التوكن كمسار سري
+@flask_app.route("/{}".format(TOKEN), methods=["POST"])
+def webhook():
+    # ... (بقية الدالة كما هي)
+    update = Update.de_json(
+        request.get_json(force=True),
+        telegram_app.bot
     )
+    telegram_app.update_queue.put_nowait(update)
+    return "OK"
 
-    print("✅ BOT IS RUNNING WITH WEBHOOK")
+# ==============================
+# دالة إعداد البوت (نضيفها)
+# ==============================
 
-    flask_app.run(host="0.0.0.0", port=PORT)
+def setup_webhook():
+    # التأكد من تهيئة التطبيق قبل تعيين Webhook
+    telegram_app.initialize() 
+
+    # تعيين Webhook إلى الرابط الصحيح (URL)
+    # ملاحظة: نستخدم متغير البيئة الذي يوفره Render وهو RENDER_EXTERNAL_URL
+    WEBHOOK_URL = os.environ.get("RENDER_EXTERNAL_URL")
+    
+    if WEBHOOK_URL:
+        full_webhook_url = f"{WEBHOOK_URL}/{TOKEN}"
+        telegram_app.bot.set_webhook(url=full_webhook_url)
+        print(f"✅ Webhook set to: {full_webhook_url}")
+    else:
+        print("⚠️ RENDER_EXTERNAL_URL not found. Webhook not set.")
+
+# نفذ إعداد Webhook مرة واحدة عند بدء تشغيل الخادم
+setup_webhook()
 
 
 
