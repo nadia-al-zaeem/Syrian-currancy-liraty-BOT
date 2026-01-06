@@ -1,83 +1,81 @@
-# bot running with Webhook (Render ready)
-
 import os
+import asyncio
 from flask import Flask, request
 from telegram import Update
-from telegram.ext import (ApplicationBuilder,CommandHandler,ContextTypes,MessageHandler,
-    CallbackQueryHandler,filters)
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    CallbackQueryHandler,
+    MessageHandler,
+    ContextTypes,
+    filters
+)
 
-#from handlers.start import start, button_handler, message_handler
-from handlers.start import start
-import asyncio
+# استيراد الهاندلرز
+from handlers.start import start, button_handler, message_handler
 
 # ==============================
-# إعداد المتغيرات
+# المتغيرات
 # ==============================
 
 TOKEN = os.environ.get("BOT_TOKEN")
 PORT = int(os.environ.get("PORT", 5000))
+WEBHOOK_URL = os.environ.get("RENDER_EXTERNAL_URL")
 
 # ==============================
-# إنشاء Flask و Telegram App
+# إنشاء Flask + Telegram App
 # ==============================
 
 flask_app = Flask(__name__)
 telegram_app = ApplicationBuilder().token(TOKEN).build()
 
 # ==============================
-# Handlers (كما هي عندك)
+# إضافة الهاندلرز
 # ==============================
 
 telegram_app.add_handler(CommandHandler("start", start))
-#telegram_app.add_handler(CallbackQueryHandler(button_handler))
-#telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
-
-
-
-# ==============================
-# تشغيل التطبيق
-# ==============================
-
-# ... (الجزء العلوي من الكود و Handlers يبقى كما هو)
+telegram_app.add_handler(CallbackQueryHandler(button_handler))
+telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
 
 # ==============================
 # Webhook endpoint
 # ==============================
 
-# نستخدم التوكن كمسار سري
-@flask_app.route("/{}".format(TOKEN), methods=["POST"])
-def webhook():
-    # ... (بقية الدالة كما هي)
-    update = Update.de_json(
-        request.get_json(force=True),
-        telegram_app.bot
-    )
-    telegram_app.update_queue.put_nowait(update)
-    return "OK"
+@flask_app.route(f"/{TOKEN}", methods=["POST"])
+async def webhook():
+    data = request.get_json(force=True)
+    update = Update.de_json(data, telegram_app.bot)
+    await telegram_app.process_update(update)
+    return "OK", 200
 
 # ==============================
-# دالة إعداد البوت (نضيفها)
+# تشغيل Webhook + Telegram App
 # ==============================
 
-async def setup_webhook():
-    # التأكد من تهيئة التطبيق قبل تعيين Webhook
-    await telegram_app.initialize() 
+async def run_bot():
+    await telegram_app.initialize()
 
-    # تعيين Webhook إلى الرابط الصحيح (URL)
-    # ملاحظة: نستخدم متغير البيئة الذي يوفره Render وهو RENDER_EXTERNAL_URL
-    WEBHOOK_URL = os.environ.get("RENDER_EXTERNAL_URL")
-    
+    # تعيين Webhook
     if WEBHOOK_URL:
-        full_webhook_url = f"{WEBHOOK_URL}/{TOKEN}"
-        await telegram_app.bot.set_webhook(url=full_webhook_url)
-        print(f"✅ Webhook set to: {full_webhook_url}")
+        full_url = f"{WEBHOOK_URL}/{TOKEN}"
+        await telegram_app.bot.set_webhook(full_url)
+        print(f"✅ Webhook set to: {full_url}")
     else:
-        print("⚠️ RENDER_EXTERNAL_URL not found. Webhook not set.")
+        print("⚠️ RENDER_EXTERNAL_URL not found!")
 
+    await telegram_app.start()
+    print("🚀 Telegram bot started successfully!")
 
-# نفذ إعداد Webhook مرة واحدة عند بدء تشغيل الخادم
-asyncio.run(setup_webhook())
+# تشغيل البوت داخل event loop الخاص بـ Flask
+loop = asyncio.get_event_loop()
+loop.create_task(run_bot())
 
+# ==============================
+# تشغيل Flask
+# ==============================
+
+if __name__ == "__main__":
+    flask_app.run(host="0.0.0.0", port=PORT)
 
 
 
