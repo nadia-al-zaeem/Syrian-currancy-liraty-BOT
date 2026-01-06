@@ -7,6 +7,7 @@ from telegram.ext import (ApplicationBuilder,CommandHandler,ContextTypes,Message
     CallbackQueryHandler,filters)
 
 from handlers.start import start, button_handler, message_handler
+import asyncio
 
 # ==============================
 # إعداد المتغيرات
@@ -57,9 +58,9 @@ def webhook():
 # دالة إعداد البوت (نضيفها)
 # ==============================
 
-def setup_webhook():
+async def setup_webhook():
     # التأكد من تهيئة التطبيق قبل تعيين Webhook
-    telegram_app.initialize() 
+    await telegram_app.initialize() 
 
     # تعيين Webhook إلى الرابط الصحيح (URL)
     # ملاحظة: نستخدم متغير البيئة الذي يوفره Render وهو RENDER_EXTERNAL_URL
@@ -67,13 +68,14 @@ def setup_webhook():
     
     if WEBHOOK_URL:
         full_webhook_url = f"{WEBHOOK_URL}/{TOKEN}"
-        telegram_app.bot.set_webhook(url=full_webhook_url)
+        await telegram_app.bot.set_webhook(url=full_webhook_url)
         print(f"✅ Webhook set to: {full_webhook_url}")
     else:
         print("⚠️ RENDER_EXTERNAL_URL not found. Webhook not set.")
 
+
 # نفذ إعداد Webhook مرة واحدة عند بدء تشغيل الخادم
-setup_webhook()
+asyncio.run(setup_webhook())
 
 
 
