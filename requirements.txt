@@ -1,0 +1,6 @@
+python-telegram-bot==22.5
+requests==2.32.5
+bs4==0.0.2
+pyarabic==0.6.12
+num2words==0.5.14
+flask
