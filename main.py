@@ -30,18 +30,7 @@ telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
 telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
 
-# ==============================
-# Webhook endpoint
-# ==============================
 
-@flask_app.route("/", methods=["POST"])
-def webhook():
-    update = Update.de_json(
-        request.get_json(force=True),
-        telegram_app.bot
-    )
-    telegram_app.update_queue.put_nowait(update)
-    return "OK"
 
 # ==============================
 # تشغيل التطبيق
