@@ -6,7 +6,7 @@ from telegram import Update
 from telegram.ext import (ApplicationBuilder,CommandHandler,ContextTypes,MessageHandler,
     CallbackQueryHandler,filters)
 
-from handlers.start import start, button_handler, message_handler
+#from handlers.start import start, button_handler, message_handler
 import asyncio
 
 # ==============================
@@ -28,8 +28,8 @@ telegram_app = ApplicationBuilder().token(TOKEN).build()
 # ==============================
 
 telegram_app.add_handler(CommandHandler("start", start))
-telegram_app.add_handler(CallbackQueryHandler(button_handler))
-telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
+#telegram_app.add_handler(CallbackQueryHandler(button_handler))
+#telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
 
 
 
