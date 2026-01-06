@@ -1,7 +1,7 @@
-'''''
+
 from telegram import Update
 from telegram.ext import ContextTypes
-#from keyboards.inline_keyboard import get_follow_button,get_conversion_keyboard
+from keyboards.inline_keyboard import get_follow_button,get_conversion_keyboard
 from handlers.converting import handler_new_numbers,handler_old_numbers
 from handlers.prices import get_gold_price_damascus
 from keyboards.inline_keyboard import get_conversion_keyboard,get_follow_button
@@ -126,15 +126,6 @@ async def message_handler(update, context):
 
             context.user_data.pop("mode", None)
             return
-            '''
+            
 
 
-#testing
-from telegram import Update
-from telegram.ext import ContextTypes
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # لا تستخدم لوحة مفاتيح أو منطق 'followed_users' مؤقتاً
-   
-    # للتأكد من أن الكود لا ينهار عند أول سطر
-    print("START HANDLER CALLED SUCCESSFULLY.") 
-    await update.message.reply_text("البوت يعمل بنجاح!")
