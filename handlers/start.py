@@ -1,3 +1,4 @@
+'''''
 from telegram import Update
 from telegram.ext import ContextTypes
 #from keyboards.inline_keyboard import get_follow_button,get_conversion_keyboard
@@ -125,3 +126,16 @@ async def message_handler(update, context):
 
             context.user_data.pop("mode", None)
             return
+            '''
+
+
+#testing
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # لا تستخدم لوحة مفاتيح أو منطق 'followed_users' مؤقتاً
+    try:
+        # رسالة بسيطة للتأكد من أن الاتصال بالتيليجرام يعمل
+        await update.message.reply_text("البوت يعمل بنجاح، جاري التحقق من باقي الأكواد.")
+        
+    except Exception as e:
+        # إذا حدث خطأ ما زلنا نطبعه في سجلات Render
+        print(f"FATAL ERROR IN START HANDLER: {e}")
