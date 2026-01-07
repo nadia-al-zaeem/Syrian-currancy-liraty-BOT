@@ -145,8 +145,11 @@ def webhook():
 
 # تشغيل PTB في Thread منفصل
 def run_ptb():
+    print("🔥 PTB thread started")
+
     telegram_app.run_polling()  # هذا هو المفتاح: يستهلك الـ queue
 
+print("🚀 Starting PTB thread...")
 threading.Thread(target=run_ptb, daemon=True).start()
 
 if __name__ == "__main__":
