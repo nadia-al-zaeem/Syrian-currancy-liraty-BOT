@@ -105,63 +105,81 @@ if __name__ == "__main__":
 
 
 
-import os
-import threading
 import asyncio
-from flask import Flask, request
+import logging
+import os
+import uvicorn
+from quart import Quart, request, Response
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
     CallbackQueryHandler,
     MessageHandler,
-    filters
+    filters,
+    Application,
 )
-from handlers.start import start, button_handler, message_handler
+from handlers.start import start, button_handler, message_handler  # افترض أن هذا موجود
 from dotenv import load_dotenv
+from http import HTTPStatus
 
 load_dotenv()
 TOKEN = os.environ.get("BOT_TOKEN")
-WEBHOOK_URL = os.environ.get("RENDER_EXTERNAL_URL")  # تأكد أنه https://your-app.onrender.com
+WEBHOOK_URL = os.environ.get("RENDER_EXTERNAL_URL")  # https://your-app.onrender.com
 PORT = int(os.environ.get("PORT", 10000))
 
-flask_app = Flask(__name__)
-telegram_app = ApplicationBuilder().token(TOKEN).build()  # بدون updater default
+# إعداد Logging للتصحيح
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO
+)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logger = logging.getLogger(__name__)
 
-# إضافة الـ Handlers
-telegram_app.add_handler(CommandHandler("start", start))
-telegram_app.add_handler(CallbackQueryHandler(button_handler))
-telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
+async def main() -> None:
+    """إعداد PTB application و web app لمعالجة الطلبات."""
+    # بناء الـ Application بدون updater (لـ webhook custom)
+    application = ApplicationBuilder().token(TOKEN).updater(None).build()
 
-# إعداد الـ Webhook مع تليجرام (يتم مرة واحدة عند التشغيل)
-async def set_webhook():
-    await telegram_app.bot.set_webhook(f"{WEBHOOK_URL}/webhook")
+    # إضافة الـ Handlers
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(button_handler))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
 
-# استدعاء set_webhook synchronously
-telegram_app.initialize()  # ضروري قبل set_webhook
-asyncio.run(set_webhook())
-
-# Webhook endpoint (sync، نضع الـ update في queue)
-@flask_app.route("/webhook", methods=["POST"])
-def webhook():
-    if request.method == "POST":
-        data = request.get_json(force=True)
-        if data:
-            update = Update.de_json(data, telegram_app.bot)
-            telegram_app.update_queue.put(update)  # وضع الـ update في الـ queue (sync)
-            return "OK", 200
-    return "Method Not Allowed", 405
-
-# تشغيل PTB في thread منفصل لمعالجة الـ queue (بدون polling حقيقي)
-def run_bot():
-    telegram_app.run_polling(
-        poll_interval=0,  # لا polling
-        timeout=0,        # لا انتظار
-        bootstrap_retries=-1,  # إعادة محاولة إلى الأبد
-        read_timeout=30   # لتجنب timeouts
+    # إعداد الـ Webhook مع تليجرام
+    await application.bot.set_webhook(
+        url=f"{WEBHOOK_URL}/webhook",
+        allowed_updates=Update.ALL_TYPES
     )
 
-threading.Thread(target=run_bot, daemon=True).start()
+    # إعداد Quart app (async Flask)
+    quart_app = Quart(__name__)
+
+    @quart_app.post("/webhook")
+    async def webhook() -> Response:
+        """معالجة تحديثات تليجرام بوضعها في update_queue"""
+        data = await request.get_json()
+        if data:
+            update = Update.de_json(data, application.bot)
+            await application.update_queue.put(update)
+            return Response(status=HTTPStatus.OK)
+        return Response(status=HTTPStatus.BAD_REQUEST)
+
+    # تشغيل Uvicorn server
+    webserver = uvicorn.Server(
+        config=uvicorn.Config(
+            app=quart_app,
+            port=PORT,
+            use_colors=False,
+            host="0.0.0.0",  # لـ Render
+        )
+    )
+
+    # تشغيل الـ application والـ webserver معاً
+    async with application:
+        await application.start()
+        await webserver.serve()
+        await application.stop()
 
 if __name__ == "__main__":
-    flask_app.run(host="0.0.0.0", port=PORT)
+    asyncio.run(main())
