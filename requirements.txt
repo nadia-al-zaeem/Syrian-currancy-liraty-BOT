@@ -5,3 +5,4 @@ pyarabic==0.6.15
 num2words==0.5.14
 flask
 gunicorn
+python-dotenv
