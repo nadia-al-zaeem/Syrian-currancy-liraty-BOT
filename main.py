@@ -106,7 +106,6 @@ if __name__ == "__main__":
 
 
 import os
-import threading
 from flask import Flask, request
 from telegram import Update
 from telegram.ext import (
@@ -116,35 +115,41 @@ from telegram.ext import (
     MessageHandler,
     filters
 )
-from handlers.start import start, button_handler, message_handler
+from handlers.start import start, button_handler, message_handler  # افترض أن هذا موجود
 from dotenv import load_dotenv
 
 load_dotenv()
 TOKEN = os.environ.get("BOT_TOKEN")
-WEBHOOK_URL = os.environ.get("RENDER_EXTERNAL_URL")
-PORT = int(os.environ.get("PORT", 10000))
+WEBHOOK_URL = os.environ.get("RENDER_EXTERNAL_URL")  # يجب أن يكون مثل https://your-app.onrender.com
+PORT = int(os.environ.get("PORT", 10000))  # Render يحدد $PORT تلقائياً
 
 flask_app = Flask(__name__)
 telegram_app = ApplicationBuilder().token(TOKEN).build()
 
-# Handlers
+# إضافة الـ Handlers
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
 telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
 
+# إعداد الـ Webhook مع تليجرام (يتم هذا مرة واحدة عند التشغيل)
+async def set_webhook():
+    await telegram_app.bot.set_webhook(f"{WEBHOOK_URL}/webhook")
+
+# استدعاء set_webhook بشكل synchronous (باستخدام initialize للـ app)
+telegram_app.initialize()  # يجب قبل set_webhook
+import asyncio
+asyncio.run(set_webhook())  # إعداد الـ Webhook
+
 # Webhook endpoint
 @flask_app.route("/webhook", methods=["POST"])
 def webhook():
-    data = request.get_json(force=True)
-    update = Update.de_json(data, telegram_app.bot)
-    telegram_app.update_queue.put_nowait(update)
-    return "OK", 200
-
-# تشغيل PTB في Thread منفصل
-def run_bot():
-    telegram_app.run_polling()   # ← polling يستهلك الـ queue
-
-threading.Thread(target=run_bot).start()
+    if request.method == "POST":
+        data = request.get_json(force=True)
+        if data:  # التأكد من وجود بيانات
+            update = Update.de_json(data, telegram_app.bot)
+            telegram_app.process_update(update)  # معالجة الـ Update مباشرة
+            return "OK", 200
+    return "Method Not Allowed", 405
 
 if __name__ == "__main__":
     flask_app.run(host="0.0.0.0", port=PORT)
