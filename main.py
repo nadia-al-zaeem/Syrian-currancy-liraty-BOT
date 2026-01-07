@@ -82,7 +82,9 @@ telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message
 def webhook():
     data = request.get_json(force=True)
     update = Update.de_json(data, telegram_app.bot)
-    telegram_app.create_task(telegram_app.process_update(update))
+    #telegram_app.create_task(telegram_app.process_update(update))
+    telegram_app.update_queue.put_nowait(update)   # ← هذا هو الصحيح
+
     return "OK", 200
 
 # تشغيل PTB في Thread منفصل
