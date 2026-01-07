@@ -122,7 +122,7 @@ from dotenv import load_dotenv
 load_dotenv()
 TOKEN = os.environ.get("BOT_TOKEN")
 WEBHOOK_URL = os.environ.get("RENDER_EXTERNAL_URL")
-PORT = int(os.environ.get("PORT", 5000))
+PORT = int(os.environ.get("PORT", 10000))
 
 flask_app = Flask(__name__)
 telegram_app = ApplicationBuilder().token(TOKEN).build()
