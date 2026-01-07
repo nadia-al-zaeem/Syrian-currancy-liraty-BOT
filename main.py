@@ -96,7 +96,7 @@ def run_bot():
         webhook_url=f"{WEBHOOK_URL}/webhook"
     )
 
-threading.Thread(target=run_bot).start()
-
+#threading.Thread(target=run_bot).start()
+threading.Thread(target=lambda: telegram_app.start()).start()
 if __name__ == "__main__":
     flask_app.run(host="0.0.0.0", port=PORT)
