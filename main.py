@@ -106,6 +106,8 @@ if __name__ == "__main__":
 
 
 import os
+import threading
+import asyncio
 from flask import Flask, request
 from telegram import Update
 from telegram.ext import (
@@ -115,41 +117,51 @@ from telegram.ext import (
     MessageHandler,
     filters
 )
-from handlers.start import start, button_handler, message_handler  # افترض أن هذا موجود
+from handlers.start import start, button_handler, message_handler
 from dotenv import load_dotenv
 
 load_dotenv()
 TOKEN = os.environ.get("BOT_TOKEN")
-WEBHOOK_URL = os.environ.get("RENDER_EXTERNAL_URL")  # يجب أن يكون مثل https://your-app.onrender.com
-PORT = int(os.environ.get("PORT", 10000))  # Render يحدد $PORT تلقائياً
+WEBHOOK_URL = os.environ.get("RENDER_EXTERNAL_URL")  # تأكد أنه https://your-app.onrender.com
+PORT = int(os.environ.get("PORT", 10000))
 
 flask_app = Flask(__name__)
-telegram_app = ApplicationBuilder().token(TOKEN).build()
+telegram_app = ApplicationBuilder().token(TOKEN).build()  # بدون updater default
 
 # إضافة الـ Handlers
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
 telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
 
-# إعداد الـ Webhook مع تليجرام (يتم هذا مرة واحدة عند التشغيل)
+# إعداد الـ Webhook مع تليجرام (يتم مرة واحدة عند التشغيل)
 async def set_webhook():
     await telegram_app.bot.set_webhook(f"{WEBHOOK_URL}/webhook")
 
-# استدعاء set_webhook بشكل synchronous (باستخدام initialize للـ app)
-telegram_app.initialize()  # يجب قبل set_webhook
-import asyncio
-asyncio.run(set_webhook())  # إعداد الـ Webhook
+# استدعاء set_webhook synchronously
+telegram_app.initialize()  # ضروري قبل set_webhook
+asyncio.run(set_webhook())
 
-# Webhook endpoint
+# Webhook endpoint (sync، نضع الـ update في queue)
 @flask_app.route("/webhook", methods=["POST"])
 def webhook():
     if request.method == "POST":
         data = request.get_json(force=True)
-        if data:  # التأكد من وجود بيانات
+        if data:
             update = Update.de_json(data, telegram_app.bot)
-            telegram_app.process_update(update)  # معالجة الـ Update مباشرة
+            telegram_app.update_queue.put(update)  # وضع الـ update في الـ queue (sync)
             return "OK", 200
     return "Method Not Allowed", 405
+
+# تشغيل PTB في thread منفصل لمعالجة الـ queue (بدون polling حقيقي)
+def run_bot():
+    telegram_app.run_polling(
+        poll_interval=0,  # لا polling
+        timeout=0,        # لا انتظار
+        bootstrap_retries=-1,  # إعادة محاولة إلى الأبد
+        read_timeout=30   # لتجنب timeouts
+    )
+
+threading.Thread(target=run_bot, daemon=True).start()
 
 if __name__ == "__main__":
     flask_app.run(host="0.0.0.0", port=PORT)
