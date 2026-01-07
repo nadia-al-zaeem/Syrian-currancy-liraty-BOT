@@ -108,7 +108,6 @@ if __name__ == "__main__":
 import asyncio
 import logging
 import os
-import uvicorn
 from quart import Quart, request, Response
 from telegram import Update
 from telegram.ext import (
@@ -136,50 +135,44 @@ logging.basicConfig(
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
-async def main() -> None:
-    """إعداد PTB application و web app لمعالجة الطلبات."""
-    # بناء الـ Application بدون updater (لـ webhook custom)
-    application = ApplicationBuilder().token(TOKEN).updater(None).build()
+# بناء الـ Application بدون updater (لـ webhook custom)
+application = ApplicationBuilder().token(TOKEN).updater(None).build()
 
-    # إضافة الـ Handlers
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(button_handler))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
+# إضافة الـ Handlers
+application.add_handler(CommandHandler("start", start))
+application.add_handler(CallbackQueryHandler(button_handler))
+application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
 
-    # إعداد الـ Webhook مع تليجرام
+# إعداد الـ Webhook مع تليجرام (يتم مرة واحدة عند التشغيل)
+async def set_webhook():
     await application.bot.set_webhook(
         url=f"{WEBHOOK_URL}/webhook",
         allowed_updates=Update.ALL_TYPES
     )
 
-    # إعداد Quart app (async Flask)
-    quart_app = Quart(__name__)
+# استدعاء set_webhook synchronously
+asyncio.run(set_webhook())
 
-    @quart_app.post("/webhook")
-    async def webhook() -> Response:
-        """معالجة تحديثات تليجرام بوضعها في update_queue"""
-        data = await request.get_json()
-        if data:
-            update = Update.de_json(data, application.bot)
-            await application.update_queue.put(update)
-            return Response(status=HTTPStatus.OK)
-        return Response(status=HTTPStatus.BAD_REQUEST)
+# إعداد Quart app (async Flask)
+quart_app = Quart(__name__)
 
-    # تشغيل Uvicorn server
-    webserver = uvicorn.Server(
-        config=uvicorn.Config(
-            app=quart_app,
-            port=PORT,
-            use_colors=False,
-            host="0.0.0.0",  # لـ Render
-        )
-    )
+@quart_app.post("/webhook")
+async def webhook() -> Response:
+    """معالجة تحديثات تليجرام بوضعها في update_queue"""
+    data = await request.get_json()
+    if data:
+        update = Update.de_json(data, application.bot)
+        await application.update_queue.put(update)
+        return Response(status=HTTPStatus.OK)
+    return Response(status=HTTPStatus.BAD_REQUEST)
 
-    # تشغيل الـ application والـ webserver معاً
-    async with application:
-        await application.start()
-        await webserver.serve()
-        await application.stop()
+# تشغيل الـ application قبل بدء السيرفر وبعد إيقافه
+@quart_app.before_serving
+async def before_serving():
+    await application.start()
 
-if __name__ == "__main__":
-    asyncio.run(main())
+@quart_app.after_serving
+async def after_serving():
+    await application.stop()
+
+# لا حاجة لـ if __name__ == "__main__"، لأن Uvicorn سيشغل الـ app مباشرة
