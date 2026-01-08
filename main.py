@@ -134,6 +134,9 @@ telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
 telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
 
+@flask_app.route("/")
+def home():
+    return "Bot is running!", 200
 # Webhook endpoint
 @flask_app.route("/webhook", methods=["POST"])
 def webhook():
