@@ -25,7 +25,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await update.message.reply_text( "مرحباً! البوت مفعل الآن ✅\n"
             "أدخل مبلغاً بالليرة السورية القديمة لتحويله إلى الجديدة.\n"
-            "او لمعرفة قيمة المبلغ بالدولار او قيمته بالذهب \n"
+            "او لمعرفة سعر الدولار او الذهب \n"
 
 )
         
