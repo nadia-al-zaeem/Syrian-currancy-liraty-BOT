@@ -200,8 +200,13 @@ def home():
 def webhook():
     data = request.get_json(force=True)
     update = Update.de_json(data, telegram_app.bot)
-    # هنا نستعمل loop الرسمي للـ telegram_app لمعالجة التحديث
+    print("📩 Received update:", data) 
+    #telegram_app.update_queue.put_nowait(update)  # ← هذا يرسل التحديث للـ PTB
+    update = Update.de_json(data, telegram_app.bot)
     asyncio.get_event_loop().create_task(telegram_app.process_update(update))
+   
+    # هنا نستعمل loop الرسمي للـ telegram_app لمعالجة التحديث
+    #asyncio.get_event_loop().create_task(telegram_app.process_update(update))
     return "OK", 200
 
 # ضبط الـ webhook عند التشغيل
