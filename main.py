@@ -265,5 +265,8 @@ async def init_bot():
     print(f"✅ Webhook set to: {full_url}")
 
 if __name__ == "__main__":
-    asyncio.run(init_bot())
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(init_bot())
+
     flask_app.run(host="0.0.0.0", port=PORT)
