@@ -105,7 +105,7 @@ if __name__ == "__main__":
 
 
 #this is main code
-'''''
+
 import os
 import threading
 from flask import Flask, request
@@ -158,11 +158,11 @@ threading.Thread(target=run_ptb, daemon=True).start()
 
 if __name__ == "__main__":
     flask_app.run(host="0.0.0.0", port=PORT)
-    '''
+    
 
 
-
-import os
+'''''
+    import os
 import asyncio
 from flask import Flask, request
 from telegram import Update
@@ -213,4 +213,4 @@ async def init_bot():
 
 if __name__ == "__main__":
     asyncio.run(init_bot())
-    flask_app.run(host="0.0.0.0", port=PORT)
+    flask_app.run(host="0.0.0.0", port=PORT)'''
