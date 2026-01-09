@@ -105,7 +105,7 @@ if __name__ == "__main__":
 
 
 #this is main code
-
+'''''
 import os
 import threading
 from flask import Flask, request
@@ -158,7 +158,7 @@ threading.Thread(target=run_ptb, daemon=True).start()
 
 if __name__ == "__main__":
     flask_app.run(host="0.0.0.0", port=PORT)
-    
+    '''
 
 
 
