@@ -199,15 +199,18 @@ def webhook():
     data = request.get_json(force=True)
     print("📩 Received update:", data)
     update = Update.de_json(data, telegram_app.bot)
-    # هنا نعالج التحديث مباشرة
-    asyncio.run(telegram_app.process_update(update))
+    # الآن نستعمل loop موجود مسبقًا لمعالجة التحديث
+    asyncio.get_event_loop().create_task(telegram_app.process_update(update))
     return "OK", 200
 
-async def set_webhook():
+async def init_bot():
+    # تهيئة وتشغيل التطبيق مرة واحدة
+    await telegram_app.initialize()
+    await telegram_app.start()
     full_url = f"{WEBHOOK_URL}/webhook"
     await telegram_app.bot.set_webhook(full_url)
     print(f"✅ Webhook set to: {full_url}")
 
 if __name__ == "__main__":
-    asyncio.run(set_webhook())
+    asyncio.run(init_bot())
     flask_app.run(host="0.0.0.0", port=PORT)
