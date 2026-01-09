@@ -115,6 +115,7 @@ if __name__ == "__main__":
 
 #just webhook
 import os
+import asyncio
 from flask import Flask, request
 from telegram import Update
 from telegram.ext import (
@@ -150,11 +151,15 @@ def home():
 
 # Route للـ webhook
 @flask_app.route("/webhook", methods=["POST"])
+
+
+@flask_app.route("/webhook", methods=["POST"])
 def webhook():
     data = request.get_json(force=True)
     print("📩 Received update:", data)   # يظهر في الـ logs
     update = Update.de_json(data, telegram_app.bot)
-    telegram_app.update_queue.put_nowait(update)
+    # معالجة التحديث مباشرة
+    asyncio.get_event_loop().create_task(telegram_app.process_update(update))
     return "OK", 200
 
 if __name__ == "__main__":
