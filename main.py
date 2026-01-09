@@ -163,7 +163,6 @@ if __name__ == "__main__":
 
 
 import os
-import asyncio
 from flask import Flask, request
 from telegram import Update
 from telegram.ext import (
@@ -175,6 +174,7 @@ from telegram.ext import (
 )
 from handlers.start import start, button_handler, message_handler
 from dotenv import load_dotenv
+import asyncio
 
 load_dotenv()
 
@@ -195,13 +195,13 @@ telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message
 def home():
     return "Bot is running!", 200
 
-# Webhook endpoint
+# Webhook endpoint (sync)
 @flask_app.route("/webhook", methods=["POST"])
-async def webhook():
+def webhook():
     data = request.get_json(force=True)
-    print("📩 Received update:", data)   # للتشخيص
     update = Update.de_json(data, telegram_app.bot)
-    await telegram_app.process_update(update)
+    # هنا نستعمل loop الرسمي للـ telegram_app لمعالجة التحديث
+    asyncio.get_event_loop().create_task(telegram_app.process_update(update))
     return "OK", 200
 
 # ضبط الـ webhook عند التشغيل
@@ -211,5 +211,5 @@ async def set_webhook():
     print(f"✅ Webhook set to: {full_url}")
 
 if __name__ == "__main__":
-    asyncio.run(set_webhook())
+    asyncio.run(set_webhook())   # هذا يضبط الـ webhook مرة واحدة عند التشغيل
     flask_app.run(host="0.0.0.0", port=PORT)
