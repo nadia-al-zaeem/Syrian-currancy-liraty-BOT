@@ -163,6 +163,7 @@ if __name__ == "__main__":
 
 
 import os
+import threading
 from flask import Flask, request
 from telegram import Update
 from telegram.ext import (
@@ -174,13 +175,12 @@ from telegram.ext import (
 )
 from handlers.start import start, button_handler, message_handler
 from dotenv import load_dotenv
-import asyncio
 
 load_dotenv()
 
 TOKEN = os.environ.get("BOT_TOKEN")
 WEBHOOK_URL = os.environ.get("RENDER_EXTERNAL_URL")
-PORT = int(os.environ.get("PORT", 10000))  # Render يحدد المنفذ
+PORT = int(os.environ.get("PORT", 10000))
 
 flask_app = Flask(__name__)
 telegram_app = ApplicationBuilder().token(TOKEN).build()
@@ -190,31 +190,22 @@ telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
 telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
 
-# Route رئيسي
 @flask_app.route("/")
 def home():
     return "Bot is running!", 200
 
-# Webhook endpoint (sync)
 @flask_app.route("/webhook", methods=["POST"])
 def webhook():
     data = request.get_json(force=True)
+    print("📩 Received update:", data)
     update = Update.de_json(data, telegram_app.bot)
-    print("📩 Received update:", data) 
-    #telegram_app.update_queue.put_nowait(update)  # ← هذا يرسل التحديث للـ PTB
-    update = Update.de_json(data, telegram_app.bot)
-    asyncio.get_event_loop().create_task(telegram_app.process_update(update))
-   
-    # هنا نستعمل loop الرسمي للـ telegram_app لمعالجة التحديث
-    #asyncio.get_event_loop().create_task(telegram_app.process_update(update))
+    telegram_app.update_queue.put_nowait(update)  # ← يرسل التحديث للـ PTB
     return "OK", 200
 
-# ضبط الـ webhook عند التشغيل
-async def set_webhook():
-    full_url = f"{WEBHOOK_URL}/webhook"
-    await telegram_app.bot.set_webhook(full_url)
-    print(f"✅ Webhook set to: {full_url}")
+def run_ptb():
+    telegram_app.run_async()  # ← يستهلك التحديثات من الـ queue
+
+threading.Thread(target=run_ptb, daemon=True).start()
 
 if __name__ == "__main__":
-    asyncio.run(set_webhook())   # هذا يضبط الـ webhook مرة واحدة عند التشغيل
     flask_app.run(host="0.0.0.0", port=PORT)
