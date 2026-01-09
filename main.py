@@ -105,6 +105,7 @@ if __name__ == "__main__":
 
 
 #this is main code
+'''''
 import os
 import threading
 from flask import Flask, request
@@ -156,4 +157,59 @@ print("🚀 Starting PTB thread...")
 threading.Thread(target=run_ptb, daemon=True).start()
 
 if __name__ == "__main__":
+    flask_app.run(host="0.0.0.0", port=PORT)
+    '''
+
+
+
+import os
+import asyncio
+from flask import Flask, request
+from telegram import Update
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    CallbackQueryHandler,
+    MessageHandler,
+    filters
+)
+from handlers.start import start, button_handler, message_handler
+from dotenv import load_dotenv
+
+load_dotenv()
+
+TOKEN = os.environ.get("BOT_TOKEN")
+WEBHOOK_URL = os.environ.get("RENDER_EXTERNAL_URL")
+PORT = int(os.environ.get("PORT", 10000))  # Render يحدد المنفذ
+
+flask_app = Flask(__name__)
+telegram_app = ApplicationBuilder().token(TOKEN).build()
+
+# Handlers
+telegram_app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(CallbackQueryHandler(button_handler))
+telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
+
+# Route رئيسي
+@flask_app.route("/")
+def home():
+    return "Bot is running!", 200
+
+# Webhook endpoint
+@flask_app.route("/webhook", methods=["POST"])
+async def webhook():
+    data = request.get_json(force=True)
+    print("📩 Received update:", data)   # للتشخيص
+    update = Update.de_json(data, telegram_app.bot)
+    await telegram_app.process_update(update)
+    return "OK", 200
+
+# ضبط الـ webhook عند التشغيل
+async def set_webhook():
+    full_url = f"{WEBHOOK_URL}/webhook"
+    await telegram_app.bot.set_webhook(full_url)
+    print(f"✅ Webhook set to: {full_url}")
+
+if __name__ == "__main__":
+    asyncio.run(set_webhook())
     flask_app.run(host="0.0.0.0", port=PORT)
