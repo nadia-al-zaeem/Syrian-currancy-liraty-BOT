@@ -105,7 +105,7 @@ if __name__ == "__main__":
 
 
 #this is main code
-'''''
+
 import os
 import threading
 from flask import Flask, request
@@ -157,7 +157,7 @@ print("🚀 Starting PTB thread...")
 threading.Thread(target=run_ptb, daemon=True).start()
 
 if __name__ == "__main__":
-    flask_app.run(host="0.0.0.0", port=PORT)'''
+    flask_app.run(host="0.0.0.0", port=PORT)
     
 
 
@@ -216,7 +216,7 @@ if __name__ == "__main__":
     flask_app.run(host="0.0.0.0", port=PORT)'''
 
 
-
+'''''
 import os
 import asyncio
 from flask import Flask, request
@@ -270,3 +270,4 @@ if __name__ == "__main__":
     loop.run_until_complete(init_bot())
 
     flask_app.run(host="0.0.0.0", port=PORT)
+    '''
