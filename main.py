@@ -114,6 +114,7 @@ if __name__ == "__main__":
     '''
 
 #just webhook
+'''''
 import os
 import asyncio
 from flask import Flask, request
@@ -164,6 +165,39 @@ def webhook():
 
 if __name__ == "__main__":
     # تشغيل البوت بالـ webhook
+    telegram_app.run_webhook(
+        listen="0.0.0.0",
+        port=PORT,
+        url_path="webhook",
+        webhook_url=f"{WEBHOOK_URL}/webhook"
+    )
+    '''''
+
+import os
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    CallbackQueryHandler,
+    MessageHandler,
+    filters
+)
+from handlers.start import start, button_handler, message_handler
+from dotenv import load_dotenv
+
+load_dotenv()
+
+TOKEN = os.environ.get("BOT_TOKEN")
+WEBHOOK_URL = os.environ.get("RENDER_EXTERNAL_URL")
+PORT = int(os.environ.get("PORT", 10000))
+
+telegram_app = ApplicationBuilder().token(TOKEN).build()
+
+# Handlers
+telegram_app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(CallbackQueryHandler(button_handler))
+telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
+
+if __name__ == "__main__":
     telegram_app.run_webhook(
         listen="0.0.0.0",
         port=PORT,
