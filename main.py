@@ -163,7 +163,7 @@ if __name__ == "__main__":
 
 
 import os
-import threading
+import asyncio
 from flask import Flask, request
 from telegram import Update
 from telegram.ext import (
@@ -199,13 +199,15 @@ def webhook():
     data = request.get_json(force=True)
     print("📩 Received update:", data)
     update = Update.de_json(data, telegram_app.bot)
-    telegram_app.update_queue.put_nowait(update)  # ← يرسل التحديث للـ PTB
+    # هنا نعالج التحديث مباشرة
+    asyncio.run(telegram_app.process_update(update))
     return "OK", 200
 
-def run_ptb():
-    telegram_app.run_async()  # ← يستهلك التحديثات من الـ queue
-
-threading.Thread(target=run_ptb, daemon=True).start()
+async def set_webhook():
+    full_url = f"{WEBHOOK_URL}/webhook"
+    await telegram_app.bot.set_webhook(full_url)
+    print(f"✅ Webhook set to: {full_url}")
 
 if __name__ == "__main__":
+    asyncio.run(set_webhook())
     flask_app.run(host="0.0.0.0", port=PORT)
