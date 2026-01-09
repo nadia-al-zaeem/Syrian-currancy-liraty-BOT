@@ -261,6 +261,6 @@ def webhook():
     telegram_app.process_update(update)  # استخدمي process_update مباشرة (بدون queue)
     return "OK", 200
 
-if __name__ == "main":
+if __name__ == "__main__":
     print("🚀 Starting bot with webhook...")
     flask_app.run(host="0.0.0.0", port=PORT)
