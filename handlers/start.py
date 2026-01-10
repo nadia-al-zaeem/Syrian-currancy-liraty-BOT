@@ -38,8 +38,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
         "👋 أهلاً بك!\n\n"
         "تم تطوير هذا البوت بواسطة:\n"
-        "👩‍💻 المهندسة فرح حلواني\n"
-        "👩‍💻 المهندسة ناديا الزعيم\n\n"
+        "👩‍💻فريق Binary Team \n"
         "لكي تستفيد من البوت، يرجى متابعة حساب:\n"
         "📸 https://www.instagram.com/binary_team_10\n\n"
         "بعد المتابعة اضغط على الزر بالأسفل لتفعيل البوت."
